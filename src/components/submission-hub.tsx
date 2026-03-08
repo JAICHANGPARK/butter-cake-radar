@@ -20,6 +20,7 @@ import {
   MAX_WEBP_FILE_SIZE_BYTES,
 } from "@/lib/uploads";
 import { findSimilarStoreCandidates } from "@/lib/utils";
+import { storeSchema } from "@/lib/validation";
 
 const LocationPickerMap = dynamic(
   () =>
@@ -40,6 +41,29 @@ type ResultState = {
   kind: "success" | "error";
   message: string;
 } | null;
+
+type SubmissionDraft = {
+  address: string;
+  closingTime: string;
+  googleMapUrl: string;
+  imageName: string;
+  imagePreviewUrl: string;
+  imageUrl: string;
+  instagramUrl: string;
+  kakaoMapUrl: string;
+  latitude?: number;
+  longitude?: number;
+  name: string;
+  naverMapUrl: string;
+  openingDays: string;
+  openingTime: string;
+  phone: string;
+  postcode: string;
+  sido: string;
+  sigungu: string;
+  summary: string;
+  websiteUrl: string;
+};
 
 type KakaoPostcodeData = {
   address: string;
@@ -78,9 +102,18 @@ declare global {
 }
 
 let postcodeScriptPromise: Promise<void> | null = null;
+const SUBMISSION_DRAFT_KEY = "butter-cake-radar:submission-draft";
 
 const POSTCODE_SCRIPT_URL =
   "https://t1.kakaocdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js";
+
+const clearSubmissionDraft = () => {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.sessionStorage.removeItem(SUBMISSION_DRAFT_KEY);
+};
 
 const loadPostcodeScript = () => {
   if (typeof window === "undefined") {
@@ -260,6 +293,7 @@ export function SubmissionHub({
   const [isGeocodingAddress, setIsGeocodingAddress] = useState(false);
   const [locationMessage, setLocationMessage] = useState<string | null>(null);
   const postcodeLayerRef = useRef<HTMLDivElement | null>(null);
+  const hasHydratedDraftRef = useRef(false);
 
   const sigunguOptions =
     sido && sido in SIGUNGU_BY_SIDO
@@ -286,6 +320,121 @@ export function SubmissionHub({
     .filter(Boolean)
     .join(" ")
     .trim();
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    try {
+      const savedDraft = window.sessionStorage.getItem(SUBMISSION_DRAFT_KEY);
+
+      if (!savedDraft) {
+        return;
+      }
+
+      const draft = JSON.parse(savedDraft) as Partial<SubmissionDraft>;
+
+      setName(draft.name ?? "");
+      setSummary(draft.summary ?? "");
+      setAddress(draft.address ?? "");
+      setSido(draft.sido ?? "");
+      setSigungu(draft.sigungu ?? "");
+      setPostcode(draft.postcode ?? "");
+      setLatitude(typeof draft.latitude === "number" ? draft.latitude : undefined);
+      setLongitude(typeof draft.longitude === "number" ? draft.longitude : undefined);
+      setPhone(draft.phone ?? "");
+      setOpeningDays(draft.openingDays ?? "");
+      setOpeningTime(draft.openingTime ?? "");
+      setClosingTime(draft.closingTime ?? "");
+      setWebsiteUrl(draft.websiteUrl ?? "");
+      setInstagramUrl(draft.instagramUrl ?? "");
+      setKakaoMapUrl(draft.kakaoMapUrl ?? "");
+      setNaverMapUrl(draft.naverMapUrl ?? "");
+      setGoogleMapUrl(draft.googleMapUrl ?? "");
+      setImageUrl(draft.imageUrl ?? "");
+      setImagePreviewUrl(draft.imagePreviewUrl ?? draft.imageUrl ?? "");
+      setImageName(draft.imageName ?? "");
+
+      if (
+        typeof draft.latitude === "number" &&
+        typeof draft.longitude === "number"
+      ) {
+        setLocationMessage(
+          "이전 입력 내용을 복원했습니다. 필요하면 지도에서 위치를 다시 조정해 주세요.",
+        );
+      }
+    } catch {
+      clearSubmissionDraft();
+    } finally {
+      hasHydratedDraftRef.current = true;
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!hasHydratedDraftRef.current || typeof window === "undefined") {
+      return;
+    }
+
+    const draft: SubmissionDraft = {
+      address,
+      closingTime,
+      googleMapUrl,
+      imageName,
+      imagePreviewUrl,
+      imageUrl,
+      instagramUrl,
+      kakaoMapUrl,
+      latitude,
+      longitude,
+      name,
+      naverMapUrl,
+      openingDays,
+      openingTime,
+      phone,
+      postcode,
+      sido,
+      sigungu,
+      summary,
+      websiteUrl,
+    };
+
+    const isEmptyDraft = Object.entries(draft).every(([, value]) => {
+      if (typeof value === "number") {
+        return false;
+      }
+
+      return value === "";
+    });
+
+    if (isEmptyDraft) {
+      clearSubmissionDraft();
+      return;
+    }
+
+    window.sessionStorage.setItem(SUBMISSION_DRAFT_KEY, JSON.stringify(draft));
+  }, [
+    address,
+    closingTime,
+    googleMapUrl,
+    imageName,
+    imagePreviewUrl,
+    imageUrl,
+    instagramUrl,
+    kakaoMapUrl,
+    latitude,
+    longitude,
+    name,
+    naverMapUrl,
+    openingDays,
+    openingTime,
+    phone,
+    postcode,
+    sido,
+    sigungu,
+    summary,
+    websiteUrl,
+  ]);
 
   const geocodeSelectedAddress = useEffectEvent(
     async ({
@@ -493,51 +642,71 @@ export function SubmissionHub({
       imageUrls: imageUrl ? [imageUrl] : [],
     };
 
-    startTransition(async () => {
-      const response = await fetch("/api/stores", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
+    const parsed = storeSchema.safeParse(payload);
+    if (!parsed.success) {
+      setResult({
+        kind: "error",
+        message: parsed.error.issues[0]?.message ?? "입력값을 다시 확인해 주세요.",
       });
+      return;
+    }
 
-      const data = (await response.json()) as { message?: string };
+    startTransition(async () => {
+      try {
+        const response = await fetch("/api/stores", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(parsed.data),
+        });
 
-      if (!response.ok) {
+        const data = (await response.json()) as { message?: string };
+
+        if (!response.ok) {
+          setResult({
+            kind: "error",
+            message: data.message ?? "가게 등록 중 오류가 발생했습니다.",
+          });
+          return;
+        }
+
+        clearSubmissionDraft();
+        setResult({
+          kind: "success",
+          message: "가게가 바로 등록되었습니다. 오정보 신고가 생기면 매장 상세에서 이력을 바로 확인할 수 있습니다.",
+        });
+        setName("");
+        setSummary("");
+        setAddress("");
+        setSido("");
+        setSigungu("");
+        setPostcode("");
+        setLatitude(undefined);
+        setLongitude(undefined);
+        setLocationMessage(null);
+        setPhone("");
+        setOpeningDays("");
+        setOpeningTime("");
+        setClosingTime("");
+        setWebsiteUrl("");
+        setInstagramUrl("");
+        setKakaoMapUrl("");
+        setNaverMapUrl("");
+        setGoogleMapUrl("");
+        setImageUrl("");
+        setImagePreviewUrl("");
+        setImageName("");
+        setImageError(null);
+      } catch (error) {
         setResult({
           kind: "error",
-          message: data.message ?? "가게 등록 중 오류가 발생했습니다.",
+          message:
+            error instanceof Error
+              ? error.message
+              : "가게 등록 중 오류가 발생했습니다.",
         });
-        return;
       }
-
-      setResult({
-        kind: "success",
-        message: "가게가 바로 등록되었습니다. 오정보 신고가 생기면 매장 상세에서 이력을 바로 확인할 수 있습니다.",
-      });
-      setName("");
-      setSummary("");
-      setAddress("");
-      setSido("");
-      setSigungu("");
-      setPostcode("");
-      setLatitude(undefined);
-      setLongitude(undefined);
-      setLocationMessage(null);
-      setPhone("");
-      setOpeningDays("");
-      setOpeningTime("");
-      setClosingTime("");
-      setWebsiteUrl("");
-      setInstagramUrl("");
-      setKakaoMapUrl("");
-      setNaverMapUrl("");
-      setGoogleMapUrl("");
-      setImageUrl("");
-      setImagePreviewUrl("");
-      setImageName("");
-      setImageError(null);
     });
   };
 
@@ -650,7 +819,7 @@ export function SubmissionHub({
                 지도를 클릭해 매장 위치 선택
               </span>
               <p className="text-sm text-stone-500">
-                주소 검색은 주소 입력만 도와주고, 실제 핀 위치는 아래 지도에서 직접 찍어주세요.
+                주소 검색 결과를 선택하면 핀이 자동으로 배치되고, 필요하면 아래 지도에서 다시 조정할 수 있습니다.
               </p>
               {locationMessage ? (
                 <p
@@ -688,8 +857,11 @@ export function SubmissionHub({
             <label className="space-y-2">
               <span className="text-sm font-medium text-stone-700">연락처</span>
               <input
+                type="tel"
                 value={phone}
                 onChange={(event) => setPhone(event.target.value)}
+                autoComplete="tel"
+                inputMode="tel"
                 className="w-full rounded-[20px] border border-stone-200 bg-stone-50 px-4 py-3 text-sm"
                 placeholder="02-123-4567"
               />
@@ -718,6 +890,7 @@ export function SubmissionHub({
                   <span className="text-sm font-medium text-stone-700">오픈 시간</span>
                   <input
                     type="time"
+                    step="300"
                     value={openingTime}
                     onChange={(event) => setOpeningTime(event.target.value)}
                     className="w-full rounded-[20px] border border-stone-200 bg-stone-50 px-4 py-3 text-sm"
@@ -728,6 +901,7 @@ export function SubmissionHub({
                   <span className="text-sm font-medium text-stone-700">마감 시간</span>
                   <input
                     type="time"
+                    step="300"
                     value={closingTime}
                     onChange={(event) => setClosingTime(event.target.value)}
                     className="w-full rounded-[20px] border border-stone-200 bg-stone-50 px-4 py-3 text-sm"
@@ -745,8 +919,13 @@ export function SubmissionHub({
             <label className="space-y-2">
               <span className="text-sm font-medium text-stone-700">홈페이지</span>
               <input
+                type="url"
                 value={websiteUrl}
                 onChange={(event) => setWebsiteUrl(event.target.value)}
+                autoCapitalize="none"
+                autoCorrect="off"
+                inputMode="url"
+                spellCheck={false}
                 className="w-full rounded-[20px] border border-stone-200 bg-stone-50 px-4 py-3 text-sm"
                 placeholder="https://..."
               />
@@ -755,8 +934,13 @@ export function SubmissionHub({
             <label className="space-y-2">
               <span className="text-sm font-medium text-stone-700">인스타그램</span>
               <input
+                type="url"
                 value={instagramUrl}
                 onChange={(event) => setInstagramUrl(event.target.value)}
+                autoCapitalize="none"
+                autoCorrect="off"
+                inputMode="url"
+                spellCheck={false}
                 className="w-full rounded-[20px] border border-stone-200 bg-stone-50 px-4 py-3 text-sm"
                 placeholder="https://instagram.com/..."
               />
@@ -774,8 +958,13 @@ export function SubmissionHub({
                 <label className="space-y-2">
                   <span className="text-sm font-medium text-stone-700">카카오지도</span>
                   <input
+                    type="url"
                     value={kakaoMapUrl}
                     onChange={(event) => setKakaoMapUrl(event.target.value)}
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    inputMode="url"
+                    spellCheck={false}
                     className="w-full rounded-[20px] border border-stone-200 bg-stone-50 px-4 py-3 text-sm"
                     placeholder="https://place.map.kakao.com/..."
                   />
@@ -783,8 +972,13 @@ export function SubmissionHub({
                 <label className="space-y-2">
                   <span className="text-sm font-medium text-stone-700">네이버지도</span>
                   <input
+                    type="url"
                     value={naverMapUrl}
                     onChange={(event) => setNaverMapUrl(event.target.value)}
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    inputMode="url"
+                    spellCheck={false}
                     className="w-full rounded-[20px] border border-stone-200 bg-stone-50 px-4 py-3 text-sm"
                     placeholder="https://map.naver.com/..."
                   />
@@ -792,10 +986,15 @@ export function SubmissionHub({
                 <label className="space-y-2">
                   <span className="text-sm font-medium text-stone-700">구글 지도</span>
                   <input
+                    type="url"
                     value={googleMapUrl}
                     onChange={(event) => setGoogleMapUrl(event.target.value)}
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    inputMode="url"
+                    spellCheck={false}
                     className="w-full rounded-[20px] border border-stone-200 bg-stone-50 px-4 py-3 text-sm"
-                    placeholder="https://maps.app.goo.gl/..."
+                    placeholder="https://maps.google.com/..."
                   />
                 </label>
               </div>
@@ -818,7 +1017,7 @@ export function SubmissionHub({
                 )}
                 <span>
                   {isUploadingImage
-                    ? "이미지를 webp로 변환하고 업로드하는 중입니다."
+                    ? "이미지를 업로드하는 중입니다."
                     : "이미지 파일 선택 (선택, 최대 1장)"}
                 </span>
                 <input

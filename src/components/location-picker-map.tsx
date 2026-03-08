@@ -90,7 +90,7 @@ export function LocationPickerMap({
         }
         zoom={7}
         scrollWheelZoom
-        className="h-full w-full"
+        className="map-theme-simple h-full w-full"
       >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'

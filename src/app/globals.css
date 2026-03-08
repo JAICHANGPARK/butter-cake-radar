@@ -55,3 +55,48 @@ textarea {
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
+.map-theme-simple {
+  background:
+    radial-gradient(circle at top, rgba(255, 255, 255, 0.8), transparent 34%),
+    linear-gradient(180deg, #f5f1e8 0%, #eee7db 100%);
+}
+
+.map-theme-simple .leaflet-tile-pane {
+  filter: grayscale(0.24) saturate(0.48) brightness(1.06) contrast(0.92);
+}
+
+.map-theme-simple .leaflet-control-zoom {
+  border: 0;
+  box-shadow: 0 10px 24px rgba(36, 26, 16, 0.12);
+}
+
+.map-theme-simple .leaflet-control-zoom a {
+  border: 1px solid rgba(120, 113, 108, 0.22);
+  background: rgba(255, 252, 247, 0.94);
+  color: #292524;
+}
+
+.map-theme-simple .leaflet-control-zoom a:hover {
+  background: #f5f5f4;
+  color: #1c1917;
+}
+
+.map-theme-simple .leaflet-control-zoom a:first-child {
+  border-bottom: 0;
+}
+
+.map-theme-simple .leaflet-popup-content-wrapper {
+  border: 1px solid rgba(231, 229, 228, 0.9);
+  border-radius: 18px;
+  box-shadow: 0 16px 36px rgba(36, 26, 16, 0.14);
+}
+
+.map-theme-simple .leaflet-popup-tip {
+  background: white;
+}
+
+.map-theme-simple .leaflet-control-attribution {
+  background: rgba(255, 252, 247, 0.82);
+  color: #57534e;
+}

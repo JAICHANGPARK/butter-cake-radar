@@ -81,7 +81,7 @@ export function StoreMap({
         center={center}
         zoom={zoom}
         scrollWheelZoom
-        className="h-full w-full"
+        className="map-theme-simple h-full w-full"
       >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
