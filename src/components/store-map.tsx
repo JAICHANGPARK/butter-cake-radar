@@ -3,10 +3,18 @@
 import "leaflet/dist/leaflet.css";
 
 import Link from "next/link";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { divIcon } from "leaflet";
 import { clsx } from "clsx";
-import { AlertTriangle, Clock3, Instagram, Link2, Phone } from "lucide-react";
+import {
+  AlertTriangle,
+  ChevronDown,
+  ChevronUp,
+  Clock3,
+  Instagram,
+  Link2,
+  Phone,
+} from "lucide-react";
 import {
   MapContainer,
   Marker,
@@ -54,6 +62,119 @@ function MapController({
   return null;
 }
 
+export function StorePopupContent({
+  store,
+}: {
+  store: StoreWithRelations;
+}) {
+  const [isOpeningHoursOpen, setIsOpeningHoursOpen] = useState(false);
+  const openingHours = store.openingHours?.trim();
+  const mapLinks = [
+    { label: "카카오지도", href: store.kakaoMapUrl },
+    { label: "네이버지도", href: store.naverMapUrl },
+    { label: "구글 지도", href: store.googleMapUrl },
+  ].filter((link): link is { label: string; href: string } => Boolean(link.href));
+
+  return (
+    <div className="min-w-[220px] max-w-[240px]">
+      {store.images[0] ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={store.images[0].imageUrl}
+          alt={store.images[0].altText ?? store.name}
+          className="mb-3 h-28 w-full rounded-[16px] object-cover"
+        />
+      ) : null}
+      <p className="font-semibold leading-5 text-stone-900">{store.name}</p>
+      <p className="mt-1 line-clamp-2 text-sm text-stone-600">{store.summary}</p>
+      <p className="mt-1 text-sm text-stone-600">{store.address}</p>
+      <div className="mt-3 grid gap-2 text-xs text-stone-600">
+        {openingHours ? (
+          <div className="rounded-[16px] bg-stone-50 px-3 py-2">
+            <button
+              type="button"
+              onClick={() => setIsOpeningHoursOpen((current) => !current)}
+              className="flex w-full items-center justify-between gap-3 text-left"
+              aria-expanded={isOpeningHoursOpen}
+            >
+              <span className="inline-flex items-center gap-2 font-medium text-stone-700">
+                <Clock3 className="h-3.5 w-3.5 text-orange-500" />
+                영업시간
+              </span>
+              <span className="inline-flex items-center gap-1 font-semibold text-stone-700">
+                {isOpeningHoursOpen ? "접기" : "보기"}
+                {isOpeningHoursOpen ? (
+                  <ChevronUp className="h-3.5 w-3.5" />
+                ) : (
+                  <ChevronDown className="h-3.5 w-3.5" />
+                )}
+              </span>
+            </button>
+            {isOpeningHoursOpen ? (
+              <p className="mt-2 whitespace-pre-line pl-[22px] leading-5 text-stone-600">
+                {openingHours}
+              </p>
+            ) : null}
+          </div>
+        ) : (
+          <div className="flex items-start gap-2">
+            <Clock3 className="mt-0.5 h-3.5 w-3.5 text-orange-500" />
+            <span className="whitespace-pre-line leading-5">운영시간 정보 없음</span>
+          </div>
+        )}
+        {store.phone ? (
+          <div className="flex items-center gap-2">
+            <Phone className="h-3.5 w-3.5 text-orange-500" />
+            <span>{store.phone}</span>
+          </div>
+        ) : null}
+        <div className="flex items-center gap-2">
+          <AlertTriangle className="h-3.5 w-3.5 text-orange-500" />
+          <span>
+            신고 {store.reportCount}건
+            {store.pendingReportCount > 0
+              ? ` · 대기 ${store.pendingReportCount}건`
+              : ""}
+          </span>
+        </div>
+      </div>
+      {store.instagramUrl || mapLinks.length > 0 ? (
+        <div className="mt-4 flex flex-wrap gap-2">
+          {store.instagramUrl ? (
+            <a
+              href={store.instagramUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-full border border-stone-300 bg-white px-3 py-1.5 text-xs font-semibold text-stone-900"
+            >
+              <Instagram className="h-3.5 w-3.5" />
+              인스타그램
+            </a>
+          ) : null}
+          {mapLinks.map((link) => (
+            <a
+              key={link.label}
+              href={link.href}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-full border border-stone-300 bg-white px-3 py-1.5 text-xs font-semibold text-stone-900"
+            >
+              <Link2 className="h-3.5 w-3.5" />
+              {link.label}
+            </a>
+          ))}
+        </div>
+      ) : null}
+      <Link
+        href={`/stores/${store.id}`}
+        className="mt-4 inline-flex rounded-full border border-stone-300 px-3 py-1.5 text-xs font-semibold text-stone-900"
+      >
+        상세 보기
+      </Link>
+    </div>
+  );
+}
+
 export function StoreMap({
   stores,
   selectedStoreId,
@@ -92,94 +213,20 @@ export function StoreMap({
         <MapController selectedStore={selectedStore} />
 
         {stores.map((store) => {
-          const mapLinks = [
-            { label: "카카오지도", href: store.kakaoMapUrl },
-            { label: "네이버지도", href: store.naverMapUrl },
-            { label: "구글 지도", href: store.googleMapUrl },
-          ].filter((link): link is { label: string; href: string } => Boolean(link.href));
-
           return (
-          <Marker
-            key={store.id}
-            position={[store.latitude, store.longitude]}
-            icon={createPinIcon(store.id === selectedStoreId)}
-            zIndexOffset={store.id === selectedStoreId ? 1000 : 0}
-            eventHandlers={{
-              click: () => onSelectStore(store.id),
-            }}
-          >
-            <Popup>
-              <div className="min-w-[220px] max-w-[240px]">
-                {store.images[0] ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={store.images[0].imageUrl}
-                    alt={store.images[0].altText ?? store.name}
-                    className="mb-3 h-28 w-full rounded-[16px] object-cover"
-                  />
-                ) : null}
-                <p className="font-semibold text-stone-900">{store.name}</p>
-                <p className="mt-1 line-clamp-2 text-sm text-stone-600">{store.summary}</p>
-                <p className="mt-1 text-sm text-stone-600">{store.address}</p>
-                <div className="mt-3 grid gap-2 text-xs text-stone-600">
-                  <div className="flex items-start gap-2">
-                    <Clock3 className="mt-0.5 h-3.5 w-3.5 text-orange-500" />
-                    <span className="whitespace-pre-line leading-5">
-                      {store.openingHours ?? "운영시간 정보 없음"}
-                    </span>
-                  </div>
-                  {store.phone ? (
-                    <div className="flex items-center gap-2">
-                      <Phone className="h-3.5 w-3.5 text-orange-500" />
-                      <span>{store.phone}</span>
-                    </div>
-                  ) : null}
-                  <div className="flex items-center gap-2">
-                    <AlertTriangle className="h-3.5 w-3.5 text-orange-500" />
-                    <span>
-                      신고 {store.reportCount}건
-                      {store.pendingReportCount > 0
-                        ? ` · 대기 ${store.pendingReportCount}건`
-                        : ""}
-                    </span>
-                  </div>
-                </div>
-                {store.instagramUrl || mapLinks.length > 0 ? (
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    {store.instagramUrl ? (
-                      <a
-                        href={store.instagramUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center gap-1.5 rounded-full border border-stone-300 bg-white px-3 py-1.5 text-xs font-semibold text-stone-900"
-                      >
-                        <Instagram className="h-3.5 w-3.5" />
-                        인스타그램
-                      </a>
-                    ) : null}
-                    {mapLinks.map((link) => (
-                      <a
-                        key={link.label}
-                        href={link.href}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center gap-1.5 rounded-full border border-stone-300 bg-white px-3 py-1.5 text-xs font-semibold text-stone-900"
-                      >
-                        <Link2 className="h-3.5 w-3.5" />
-                        {link.label}
-                      </a>
-                    ))}
-                  </div>
-                ) : null}
-                <Link
-                  href={`/stores/${store.id}`}
-                  className="mt-4 inline-flex rounded-full border border-stone-300 px-3 py-1.5 text-xs font-semibold text-stone-900"
-                >
-                  상세 보기
-                </Link>
-              </div>
-            </Popup>
-          </Marker>
+            <Marker
+              key={store.id}
+              position={[store.latitude, store.longitude]}
+              icon={createPinIcon(store.id === selectedStoreId)}
+              zIndexOffset={store.id === selectedStoreId ? 1000 : 0}
+              eventHandlers={{
+                click: () => onSelectStore(store.id),
+              }}
+            >
+              <Popup>
+                <StorePopupContent store={store} />
+              </Popup>
+            </Marker>
           );
         })}
       </MapContainer>
