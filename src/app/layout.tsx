@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Analytics } from "@vercel/analytics/next";
 
 import { AppHeader } from "@/components/app-header";
 import { env } from "@/lib/env";
@@ -56,6 +57,7 @@ export default function RootLayout({
           <AppHeader />
           <main>{children}</main>
         </div>
+        <Analytics />
       </body>
     </html>
   );
