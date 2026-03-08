@@ -3,6 +3,8 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
+import { readJsonResponse } from "@/lib/fetch";
+
 export function StoreReportForm({
   storeId,
 }: {
@@ -43,10 +45,10 @@ export function StoreReportForm({
             }),
           });
 
-          const data = (await response.json()) as { message?: string };
+          const data = await readJsonResponse<{ message?: string }>(response);
 
           if (!response.ok) {
-            setError(data.message ?? "신고를 접수하지 못했습니다.");
+            setError(data?.message ?? "신고를 접수하지 못했습니다.");
             return;
           }
 

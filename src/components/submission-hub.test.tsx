@@ -131,13 +131,20 @@ describe("SubmissionHub", () => {
     const stores = createStores();
     seedDraftWithLocation();
 
-    vi.spyOn(global, "fetch").mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        message: "가게가 등록되었습니다.",
-        store: { id: "store-123" },
-      }),
-    } as Response);
+    vi.spyOn(global, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          message: "가게가 등록되었습니다.",
+          store: { id: "store-123" },
+        }),
+        {
+          status: 200,
+          headers: {
+            "Content-Type": "application/json",
+          },
+        },
+      ),
+    );
 
     render(<SubmissionHub stores={stores} />);
     fillRequiredFields();
@@ -156,17 +163,43 @@ describe("SubmissionHub", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("shows a generic error when the store API returns an empty body", async () => {
+    const stores = createStores();
+    seedDraftWithLocation();
+
+    vi.spyOn(global, "fetch").mockResolvedValue(new Response(null, { status: 500 }));
+
+    render(<SubmissionHub stores={stores} />);
+    fillRequiredFields();
+
+    fireEvent.click(screen.getByRole("button", { name: "가게 등록하기" }));
+
+    expect(
+      await screen.findByText("가게 등록 중 오류가 발생했습니다."),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(/Unexpected end of JSON input/i),
+    ).not.toBeInTheDocument();
+  });
+
   it("moves to the map from the success popup", async () => {
     const stores = createStores();
     seedDraftWithLocation();
 
-    vi.spyOn(global, "fetch").mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        message: "가게가 등록되었습니다.",
-        store: { id: "store-123" },
-      }),
-    } as Response);
+    vi.spyOn(global, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          message: "가게가 등록되었습니다.",
+          store: { id: "store-123" },
+        }),
+        {
+          status: 200,
+          headers: {
+            "Content-Type": "application/json",
+          },
+        },
+      ),
+    );
 
     render(<SubmissionHub stores={stores} />);
     fillRequiredFields();

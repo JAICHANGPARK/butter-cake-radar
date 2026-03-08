@@ -17,7 +17,15 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const body = await request.json();
+  const body = await request.json().catch(() => null);
+
+  if (body === null) {
+    return NextResponse.json(
+      { message: "입력값이 올바르지 않습니다." },
+      { status: 400 },
+    );
+  }
+
   const parsed = storeSchema.safeParse(body);
 
   if (!parsed.success) {
@@ -29,9 +37,22 @@ export async function POST(request: Request) {
     );
   }
 
-  const store = await repository.createStore(parsed.data);
-  return NextResponse.json({
-    message: "가게가 등록되었습니다.",
-    store,
-  });
+  try {
+    const store = await repository.createStore(parsed.data);
+    return NextResponse.json({
+      message: "가게가 등록되었습니다.",
+      store,
+    });
+  } catch (error) {
+    console.error("[api/stores] Failed to create store.", error);
+    return NextResponse.json(
+      {
+        message:
+          error instanceof Error
+            ? error.message
+            : "가게 등록 중 오류가 발생했습니다.",
+      },
+      { status: 500 },
+    );
+  }
 }

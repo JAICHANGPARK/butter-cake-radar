@@ -19,6 +19,7 @@ import {
   SIDO_OPTIONS,
   SIGUNGU_BY_SIDO,
 } from "@/lib/regions";
+import { readJsonResponse } from "@/lib/fetch";
 import type { SimilarStoreCandidate, StoreInput, StoreWithRelations } from "@/lib/types";
 import {
   MAX_IMAGE_DIMENSION,
@@ -477,15 +478,19 @@ export function SubmissionHub({
       }
 
       const response = await fetch(`/api/geocode?${params.toString()}`);
-      const data = (await response.json()) as {
+      const data = await readJsonResponse<{
         latitude?: number;
         longitude?: number;
         message?: string;
-      };
+      }>(response);
 
-      if (!response.ok || data.latitude === undefined || data.longitude === undefined) {
+      if (
+        !response.ok ||
+        data?.latitude === undefined ||
+        data.longitude === undefined
+      ) {
         throw new Error(
-          data.message ?? "주소 좌표를 찾지 못했습니다. 아래 지도에서 직접 선택해 주세요.",
+          data?.message ?? "주소 좌표를 찾지 못했습니다. 아래 지도에서 직접 선택해 주세요.",
         );
       }
 
@@ -618,10 +623,12 @@ export function SubmissionHub({
         body: formData,
       });
 
-      const data = (await response.json()) as { imageUrl?: string; message?: string };
+      const data = await readJsonResponse<{ imageUrl?: string; message?: string }>(
+        response,
+      );
 
-      if (!response.ok || !data.imageUrl) {
-        throw new Error(data.message ?? "이미지 업로드에 실패했습니다.");
+      if (!response.ok || !data?.imageUrl) {
+        throw new Error(data?.message ?? "이미지 업로드에 실패했습니다.");
       }
 
       setImageUrl(data.imageUrl);
@@ -678,12 +685,12 @@ export function SubmissionHub({
           body: JSON.stringify(parsed.data),
         });
 
-        const data = (await response.json()) as { message?: string };
+        const data = await readJsonResponse<{ message?: string }>(response);
 
         if (!response.ok) {
           setResult({
             kind: "error",
-            message: data.message ?? "가게 등록 중 오류가 발생했습니다.",
+            message: data?.message ?? "가게 등록 중 오류가 발생했습니다.",
           });
           return;
         }
