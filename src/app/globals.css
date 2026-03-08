@@ -1,0 +1,57 @@
+@import "tailwindcss";
+
+:root {
+  --background: #fff9ef;
+  --foreground: #241a10;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: "SUIT Variable", "Pretendard Variable", "Apple SD Gothic Neo",
+    "Malgun Gothic", sans-serif;
+  --font-heading: "BM Jua", "Do Hyeon", "Apple SD Gothic Neo", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: "SUIT Variable", "Pretendard Variable", "Apple SD Gothic Neo",
+    "Malgun Gothic", sans-serif;
+}
+
+a,
+button,
+input,
+select,
+textarea {
+  transition:
+    color 180ms ease,
+    background-color 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    transform 180ms ease;
+}
+
+.font-heading {
+  font-family: "BM Jua", "Do Hyeon", "Apple SD Gothic Neo", sans-serif;
+}
+
+::selection {
+  background: rgba(255, 166, 77, 0.28);
+}
+
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}

@@ -1,0 +1,10 @@
+<svg width="1200" height="900" viewBox="0 0 1200 900" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="900" rx="40" fill="#EEF8FF"/>
+  <rect x="86" y="96" width="1028" height="708" rx="60" fill="#98D8E8"/>
+  <rect x="150" y="152" width="900" height="596" rx="44" fill="#FFFDF7"/>
+  <circle cx="930" cy="230" r="84" fill="#FFE37B"/>
+  <path d="M240 520C240 433 311 362 398 362H802C889 362 960 433 960 520V595H240V520Z" fill="#4E7AA1"/>
+  <rect x="220" y="595" width="760" height="106" rx="53" fill="#FFE3A9"/>
+  <path d="M244 248C332 205 450 181 600 181C750 181 868 205 956 248V282H244V248Z" fill="#F5A05E"/>
+  <text x="600" y="780" text-anchor="middle" fill="#234460" font-family="sans-serif" font-size="54" font-weight="700">Milk Butter</text>
+</svg>

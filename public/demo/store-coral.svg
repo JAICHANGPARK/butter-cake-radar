@@ -1,0 +1,11 @@
+<svg width="1200" height="900" viewBox="0 0 1200 900" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="900" rx="40" fill="#FFF5F0"/>
+  <rect x="80" y="90" width="1040" height="720" rx="60" fill="#FFB88A"/>
+  <rect x="150" y="150" width="900" height="600" rx="46" fill="#FFF7EC"/>
+  <path d="M270 550C270 435 363 342 478 342H722C837 342 930 435 930 550V596H270V550Z" fill="#B45C42"/>
+  <rect x="250" y="596" width="700" height="92" rx="46" fill="#F7D98D"/>
+  <rect x="300" y="264" width="600" height="120" rx="60" fill="#FFE5CA"/>
+  <circle cx="360" cy="264" r="54" fill="#FFD56E"/>
+  <circle cx="840" cy="264" r="42" fill="#FF845A"/>
+  <text x="600" y="770" text-anchor="middle" fill="#6A3A29" font-family="sans-serif" font-size="52" font-weight="700">Soft Rice Lab</text>
+</svg>

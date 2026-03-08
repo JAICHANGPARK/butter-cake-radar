@@ -1,0 +1,11 @@
+<svg width="1200" height="900" viewBox="0 0 1200 900" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="900" rx="40" fill="#FFFDF8"/>
+  <rect x="78" y="90" width="1044" height="720" rx="60" fill="#F5DEB7"/>
+  <rect x="148" y="156" width="904" height="588" rx="46" fill="#FFFAF0"/>
+  <circle cx="905" cy="250" r="70" fill="#FFD77C"/>
+  <circle cx="286" cy="270" r="48" fill="#E8A45F"/>
+  <path d="M260 540C281 419 390 336 515 336H686C810 336 919 419 940 540H260Z" fill="#7E5134"/>
+  <rect x="250" y="540" width="700" height="138" rx="69" fill="#C88D56"/>
+  <rect x="355" y="438" width="490" height="84" rx="42" fill="#FFF8E4"/>
+  <text x="600" y="782" text-anchor="middle" fill="#5B3A24" font-family="sans-serif" font-size="52" font-weight="700">Yolk Bakery</text>
+</svg>
