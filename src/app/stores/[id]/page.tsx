@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
@@ -11,6 +12,7 @@ import {
 } from "lucide-react";
 
 import { StoreReportForm } from "@/components/store-report-form";
+import { env } from "@/lib/env";
 import { repository } from "@/lib/repository";
 import type { ReportStatus, ReportType } from "@/lib/types";
 
@@ -33,6 +35,51 @@ const formatDate = (value: string) =>
     day: "numeric",
   }).format(new Date(value));
 
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const store = await repository.getStoreById(id);
+
+  if (!store || store.status === "disabled") {
+    return {
+      title: "매장을 찾을 수 없습니다",
+      robots: {
+        index: false,
+        follow: false,
+      },
+    };
+  }
+
+  const detailUrl = `${env.siteUrl}/stores/${store.id}`;
+  const description = `${store.summary} 주소: ${store.address}. 오정보 신고 ${store.reportCount}건 확인 가능.`;
+
+  return {
+    title: `${store.name}`,
+    description,
+    alternates: {
+      canonical: `/stores/${store.id}`,
+    },
+    openGraph: {
+      title: `${store.name} - 버터떡맵`,
+      description,
+      url: detailUrl,
+      type: "article",
+      images:
+        store.images[0]?.imageUrl
+          ? [
+              {
+                url: store.images[0].imageUrl,
+                alt: store.images[0].altText ?? store.name,
+              },
+            ]
+          : undefined,
+    },
+  };
+}
+
 export default async function StoreDetailPage({
   params,
 }: {
@@ -51,9 +98,41 @@ export default async function StoreDetailPage({
     { label: "네이버지도", href: store.naverMapUrl },
     { label: "구글 지도", href: store.googleMapUrl },
   ].filter((link): link is { label: string; href: string } => Boolean(link.href));
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "Bakery",
+    name: store.name,
+    description: store.summary,
+    url: `${env.siteUrl}/stores/${store.id}`,
+    telephone: store.phone ?? undefined,
+    image: store.images[0]?.imageUrl,
+    address: {
+      "@type": "PostalAddress",
+      streetAddress: store.address,
+      addressLocality: store.sigungu,
+      addressRegion: store.sido,
+      addressCountry: "KR",
+    },
+    geo: {
+      "@type": "GeoCoordinates",
+      latitude: store.latitude,
+      longitude: store.longitude,
+    },
+    sameAs: [
+      store.websiteUrl,
+      store.instagramUrl,
+      store.kakaoMapUrl,
+      store.naverMapUrl,
+      store.googleMapUrl,
+    ].filter(Boolean),
+  };
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-5 py-8 md:px-8 md:py-10">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+      />
       <Link href="/" className="text-sm font-medium text-stone-500">
         ← 지도로 돌아가기
       </Link>
@@ -97,7 +176,7 @@ export default async function StoreDetailPage({
                 <Clock3 className="mt-1 h-5 w-5 text-orange-500" />
                 <div>
                   <p className="font-medium text-stone-900">운영시간</p>
-                  <p className="mt-1 text-sm leading-6 text-stone-600">
+                  <p className="mt-1 whitespace-pre-line text-sm leading-6 text-stone-600">
                     {store.openingHours ?? "정보 준비 중"}
                   </p>
                 </div>
