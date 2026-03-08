@@ -88,7 +88,7 @@ export function MapBrowser({
   };
 
   return (
-    <div className="relative h-[calc(100dvh-73px)] min-h-[560px] w-full overflow-hidden bg-stone-950 md:min-h-[720px]">
+    <div className="relative h-[calc(100dvh-73px)] min-h-[560px] w-full overflow-hidden bg-[#f3dd9e] md:min-h-[720px]">
       <StoreMap
         stores={stores}
         selectedStoreId={selectedStoreId}
@@ -96,14 +96,14 @@ export function MapBrowser({
         className="min-h-full rounded-none border-0 shadow-none"
       />
 
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-stone-950/30 via-transparent to-stone-950/45" />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-[#fff8de]/58 via-[#fff4cf]/12 to-[#d4a53b]/18" />
 
       <div className="pointer-events-none absolute inset-0">
         {isSearchOpen ? (
-          <div className="pointer-events-auto absolute inset-0 z-[520] bg-stone-950/24 backdrop-blur-[2px]">
+          <div className="pointer-events-auto absolute inset-0 z-[520] bg-[#7a5b16]/10 backdrop-blur-[2px]">
             <div className="absolute inset-x-3 top-3 md:left-6 md:top-6 md:max-w-[380px]">
               <form
-                className="rounded-[24px] border border-white/70 bg-white/94 p-3 shadow-[0_18px_48px_rgba(24,24,20,0.16)] backdrop-blur-xl md:p-4"
+                className="rounded-[24px] border border-[#fff2c9] bg-[#fffaf0]/95 p-3 shadow-[0_18px_48px_rgba(94,72,18,0.14)] backdrop-blur-xl md:p-4"
                 onSubmit={(event) => {
                   event.preventDefault();
                   startTransition(() => {
@@ -241,7 +241,7 @@ export function MapBrowser({
           <button
             type="button"
             onClick={() => setIsListOpen(true)}
-            className="inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/92 px-4 py-2.5 text-sm font-semibold text-stone-900 shadow-[0_14px_32px_rgba(24,24,20,0.16)] backdrop-blur-xl"
+            className="inline-flex items-center gap-2 rounded-full border border-[#fff0be] bg-[#fff8e6]/94 px-4 py-2.5 text-sm font-semibold text-stone-900 shadow-[0_14px_32px_rgba(94,72,18,0.14)] backdrop-blur-xl"
           >
             <List className="h-4 w-4" />
             리스트
@@ -250,9 +250,9 @@ export function MapBrowser({
         </div>
 
         {isListOpen ? (
-          <div className="pointer-events-auto absolute inset-0 z-[520] bg-stone-950/30 backdrop-blur-[2px]">
+          <div className="pointer-events-auto absolute inset-0 z-[520] bg-[#7a5b16]/12 backdrop-blur-[2px]">
             <div className="absolute inset-x-0 bottom-0 md:inset-y-6 md:right-6 md:left-auto md:w-[420px]">
-              <section className="mx-3 flex h-[52dvh] flex-col rounded-t-[30px] border border-white/70 bg-white/96 p-4 shadow-[0_-18px_48px_rgba(24,24,20,0.18)] backdrop-blur-xl md:mx-0 md:h-full md:rounded-[32px] md:p-5">
+              <section className="mx-3 flex h-[52dvh] flex-col rounded-t-[30px] border border-[#fff2c9] bg-[#fffaf0]/96 p-4 shadow-[0_-18px_48px_rgba(94,72,18,0.16)] backdrop-blur-xl md:mx-0 md:h-full md:rounded-[32px] md:p-5">
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-[0.24em] text-stone-500">
