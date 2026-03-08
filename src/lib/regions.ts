@@ -264,6 +264,110 @@ const REGION_MAP = {
   ],
 } satisfies Record<string, string[]>;
 
+const SIDO_ALIASES = {
+  강원: "강원특별자치도",
+  경기: "경기도",
+  경남: "경상남도",
+  경북: "경상북도",
+  광주: "광주광역시",
+  대구: "대구광역시",
+  대전: "대전광역시",
+  부산: "부산광역시",
+  서울: "서울특별시",
+  세종: "세종특별자치시",
+  울산: "울산광역시",
+  인천: "인천광역시",
+  전남: "전라남도",
+  전북: "전북특별자치도",
+  제주: "제주특별자치도",
+  제주도: "제주특별자치도",
+  충남: "충청남도",
+  충북: "충청북도",
+} satisfies Record<string, string>;
+
+const normalizeRegionText = (value: string) => value.replace(/\s+/g, " ").trim();
+
+export const resolveSido = ({
+  nextSido,
+  addressCandidates = [],
+}: {
+  nextSido: string;
+  addressCandidates?: string[];
+}) => {
+  const normalizedSido = normalizeRegionText(nextSido);
+
+  if (normalizedSido in REGION_MAP) {
+    return normalizedSido;
+  }
+
+  if (normalizedSido in SIDO_ALIASES) {
+    return SIDO_ALIASES[normalizedSido as keyof typeof SIDO_ALIASES];
+  }
+
+  const addressTokens = addressCandidates
+    .map((candidate) => normalizeRegionText(candidate).split(" ")[0] ?? "")
+    .filter(Boolean);
+
+  for (const token of addressTokens) {
+    if (token in REGION_MAP) {
+      return token;
+    }
+
+    if (token in SIDO_ALIASES) {
+      return SIDO_ALIASES[token as keyof typeof SIDO_ALIASES];
+    }
+  }
+
+  return normalizedSido;
+};
+
+export const resolveSigungu = ({
+  nextSido,
+  nextSigungu,
+  addressCandidates = [],
+}: {
+  nextSido: string;
+  nextSigungu: string;
+  addressCandidates?: string[];
+}) => {
+  if (nextSido === "세종특별자치시") {
+    return "세종시";
+  }
+
+  const options = REGION_MAP[nextSido as keyof typeof REGION_MAP] ?? [];
+  const normalizedSigungu = normalizeRegionText(nextSigungu);
+  const normalizedAddressCandidates = addressCandidates
+    .map((candidate) => normalizeRegionText(candidate))
+    .filter(Boolean);
+
+  const directMatch =
+    options.find((option) => option === normalizedSigungu) ??
+    (normalizedSigungu
+      ? options.find((option) => option.endsWith(normalizedSigungu)) ??
+        options.find((option) => normalizedSigungu.endsWith(option))
+      : undefined);
+
+  if (directMatch) {
+    return directMatch;
+  }
+
+  const addressMatch = [...options]
+    .sort((left, right) => right.length - left.length)
+    .find((option) =>
+      normalizedAddressCandidates.some((candidate) => candidate.includes(option)),
+    );
+
+  if (addressMatch) {
+    return addressMatch;
+  }
+
+  if (!normalizedSigungu && options.length === 1) {
+    return options[0];
+  }
+
+  return normalizedSigungu;
+};
+
 export const REGIONS: RegionRecord[] = Object.entries(REGION_MAP).flatMap(
   ([sido, sigunguList]) =>
     sigunguList.map((sigungu) => ({

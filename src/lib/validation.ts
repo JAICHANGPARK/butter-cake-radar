@@ -57,7 +57,7 @@ export const storeSchema = z.object({
     .min(124, "지도에서 매장 위치를 선택해 주세요.")
     .max(132, "지도에서 매장 위치를 선택해 주세요."),
   phone: optionalTextField("연락처", 30),
-  openingHours: optionalTextField("운영시간", 120),
+  openingHours: optionalTextField("운영시간", 500),
   websiteUrl: optionalUrl("홈페이지"),
   instagramUrl: optionalUrl("인스타그램"),
   kakaoMapUrl: optionalUrl("카카오지도"),

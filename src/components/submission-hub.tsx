@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   useEffect,
   useEffectEvent,
@@ -12,7 +13,12 @@ import {
 } from "react";
 import { ImagePlus, LoaderCircle, MapPin, Search, X } from "lucide-react";
 
-import { SIDO_OPTIONS, SIGUNGU_BY_SIDO } from "@/lib/regions";
+import {
+  resolveSido,
+  resolveSigungu,
+  SIDO_OPTIONS,
+  SIGUNGU_BY_SIDO,
+} from "@/lib/regions";
 import type { SimilarStoreCandidate, StoreInput, StoreWithRelations } from "@/lib/types";
 import {
   MAX_IMAGE_DIMENSION,
@@ -44,7 +50,6 @@ type ResultState = {
 
 type SubmissionDraft = {
   address: string;
-  closingTime: string;
   googleMapUrl: string;
   imageName: string;
   imagePreviewUrl: string;
@@ -55,8 +60,10 @@ type SubmissionDraft = {
   longitude?: number;
   name: string;
   naverMapUrl: string;
-  openingDays: string;
-  openingTime: string;
+  openingHours?: string;
+  openingDays?: string;
+  openingTime?: string;
+  closingTime?: string;
   phone: string;
   postcode: string;
   sido: string;
@@ -157,21 +164,6 @@ const loadPostcodeScript = () => {
   return postcodeScriptPromise;
 };
 
-const resolveSigungu = (nextSido: string, nextSigungu: string) => {
-  if (nextSido === "세종특별자치시") {
-    return "세종시";
-  }
-
-  const options = SIGUNGU_BY_SIDO[nextSido as keyof typeof SIGUNGU_BY_SIDO] ?? [];
-
-  return (
-    options.find((option) => option === nextSigungu) ??
-    options.find((option) => option.endsWith(nextSigungu)) ??
-    options.find((option) => nextSigungu.endsWith(option)) ??
-    ""
-  );
-};
-
 const buildAddressFromPostcode = (data: KakaoPostcodeData) => {
   const baseAddress =
     data.userSelectedType === "R"
@@ -263,6 +255,7 @@ export function SubmissionHub({
 }: {
   stores: StoreWithRelations[];
 }) {
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [result, setResult] = useState<ResultState>(null);
   const [name, setName] = useState("");
@@ -274,9 +267,7 @@ export function SubmissionHub({
   const [latitude, setLatitude] = useState<number | undefined>();
   const [longitude, setLongitude] = useState<number | undefined>();
   const [phone, setPhone] = useState("");
-  const [openingDays, setOpeningDays] = useState("");
-  const [openingTime, setOpeningTime] = useState("");
-  const [closingTime, setClosingTime] = useState("");
+  const [openingHoursInput, setOpeningHoursInput] = useState("");
   const [websiteUrl, setWebsiteUrl] = useState("");
   const [instagramUrl, setInstagramUrl] = useState("");
   const [kakaoMapUrl, setKakaoMapUrl] = useState("");
@@ -313,13 +304,7 @@ export function SubmissionHub({
     }).slice(0, 3);
   }, [address, name, sido, sigungu, stores]);
 
-  const openingHours = [
-    openingDays.trim(),
-    openingTime && closingTime ? `${openingTime}-${closingTime}` : "",
-  ]
-    .filter(Boolean)
-    .join(" ")
-    .trim();
+  const openingHours = openingHoursInput.trim();
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -344,9 +329,16 @@ export function SubmissionHub({
       setLatitude(typeof draft.latitude === "number" ? draft.latitude : undefined);
       setLongitude(typeof draft.longitude === "number" ? draft.longitude : undefined);
       setPhone(draft.phone ?? "");
-      setOpeningDays(draft.openingDays ?? "");
-      setOpeningTime(draft.openingTime ?? "");
-      setClosingTime(draft.closingTime ?? "");
+      const legacyOpeningHours = [
+        draft.openingDays?.trim(),
+        draft.openingTime && draft.closingTime
+          ? `${draft.openingTime}-${draft.closingTime}`
+          : "",
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .trim();
+      setOpeningHoursInput(draft.openingHours ?? legacyOpeningHours);
       setWebsiteUrl(draft.websiteUrl ?? "");
       setInstagramUrl(draft.instagramUrl ?? "");
       setKakaoMapUrl(draft.kakaoMapUrl ?? "");
@@ -378,7 +370,6 @@ export function SubmissionHub({
 
     const draft: SubmissionDraft = {
       address,
-      closingTime,
       googleMapUrl,
       imageName,
       imagePreviewUrl,
@@ -389,8 +380,7 @@ export function SubmissionHub({
       longitude,
       name,
       naverMapUrl,
-      openingDays,
-      openingTime,
+      openingHours,
       phone,
       postcode,
       sido,
@@ -399,13 +389,25 @@ export function SubmissionHub({
       websiteUrl,
     };
 
-    const isEmptyDraft = Object.entries(draft).every(([, value]) => {
-      if (typeof value === "number") {
-        return false;
-      }
-
-      return value === "";
-    });
+    const isEmptyDraft =
+      !address &&
+      !googleMapUrl &&
+      !imageName &&
+      !imagePreviewUrl &&
+      !imageUrl &&
+      !instagramUrl &&
+      !kakaoMapUrl &&
+      latitude === undefined &&
+      longitude === undefined &&
+      !name &&
+      !naverMapUrl &&
+      !openingHours &&
+      !phone &&
+      !postcode &&
+      !sido &&
+      !sigungu &&
+      !summary &&
+      !websiteUrl;
 
     if (isEmptyDraft) {
       clearSubmissionDraft();
@@ -415,7 +417,6 @@ export function SubmissionHub({
     window.sessionStorage.setItem(SUBMISSION_DRAFT_KEY, JSON.stringify(draft));
   }, [
     address,
-    closingTime,
     googleMapUrl,
     imageName,
     imagePreviewUrl,
@@ -426,8 +427,7 @@ export function SubmissionHub({
     longitude,
     name,
     naverMapUrl,
-    openingDays,
-    openingTime,
+    openingHours,
     phone,
     postcode,
     sido,
@@ -528,8 +528,25 @@ export function SubmissionHub({
         const postcodeSearch = new window.daum.Postcode({
           oncomplete: (data) => {
             const nextAddress = buildAddressFromPostcode(data);
-            const nextSido = data.sido;
-            const nextSigungu = resolveSigungu(nextSido, data.sigungu);
+            const nextSido = resolveSido({
+              nextSido: data.sido,
+              addressCandidates: [
+                nextAddress,
+                data.address,
+                data.roadAddress,
+                data.jibunAddress,
+              ],
+            });
+            const nextSigungu = resolveSigungu({
+              nextSido,
+              nextSigungu: data.sigungu,
+              addressCandidates: [
+                nextAddress,
+                data.address,
+                data.roadAddress,
+                data.jibunAddress,
+              ],
+            });
 
             setAddress(nextAddress);
             setPostcode(data.zonecode);
@@ -686,9 +703,7 @@ export function SubmissionHub({
         setLongitude(undefined);
         setLocationMessage(null);
         setPhone("");
-        setOpeningDays("");
-        setOpeningTime("");
-        setClosingTime("");
+        setOpeningHoursInput("");
         setWebsiteUrl("");
         setInstagramUrl("");
         setKakaoMapUrl("");
@@ -712,14 +727,6 @@ export function SubmissionHub({
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-5 py-8 md:px-8 md:py-10">
-      {result?.kind === "success" ? (
-        <div
-          className="rounded-[24px] bg-emerald-50 px-5 py-4 text-sm text-emerald-900"
-        >
-          {result.message}
-        </div>
-      ) : null}
-
       <div className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
         <form
           className="rounded-[32px] border border-stone-200 bg-white p-6 shadow-sm"
@@ -871,49 +878,34 @@ export function SubmissionHub({
               <div>
                 <p className="text-sm font-medium text-stone-700">운영시간</p>
                 <p className="mt-1 text-sm text-stone-500">
-                  요일은 직접 입력하고, 시간은 선택기로 지정해 주세요.
+                  네이버나 지도에 보이는 운영시간 문구를 그대로 붙여넣어도 됩니다.
                 </p>
               </div>
 
               <label className="space-y-2">
-                <span className="text-sm font-medium text-stone-700">운영 요일</span>
-                <input
-                  value={openingDays}
-                  onChange={(event) => setOpeningDays(event.target.value)}
-                  className="w-full rounded-[20px] border border-stone-200 bg-stone-50 px-4 py-3 text-sm"
-                  placeholder="예: 매일, 화-일, 월-토"
+                <span className="text-sm font-medium text-stone-700">운영시간 입력</span>
+                <textarea
+                  value={openingHoursInput}
+                  onChange={(event) => setOpeningHoursInput(event.target.value)}
+                  className="h-48 w-full rounded-[20px] border border-stone-200 bg-stone-50 px-4 py-3 text-sm leading-6"
+                  placeholder={`영업시간
+곧 영업 종료
+일
+12:00 - 16:30
+월
+정기휴무 (매주 월요일)
+화
+12:00 - 19:00
+수
+12:00 - 19:00
+목
+12:00 - 19:00
+금
+12:00 - 19:00
+토
+12:00 - 16:30`}
                 />
               </label>
-
-              <div className="grid gap-3">
-                <label className="space-y-2">
-                  <span className="text-sm font-medium text-stone-700">오픈 시간</span>
-                  <input
-                    type="time"
-                    step="300"
-                    value={openingTime}
-                    onChange={(event) => setOpeningTime(event.target.value)}
-                    className="w-full rounded-[20px] border border-stone-200 bg-stone-50 px-4 py-3 text-sm"
-                  />
-                </label>
-
-                <label className="space-y-2">
-                  <span className="text-sm font-medium text-stone-700">마감 시간</span>
-                  <input
-                    type="time"
-                    step="300"
-                    value={closingTime}
-                    onChange={(event) => setClosingTime(event.target.value)}
-                    className="w-full rounded-[20px] border border-stone-200 bg-stone-50 px-4 py-3 text-sm"
-                  />
-                </label>
-              </div>
-
-              {openingHours ? (
-                <p className="rounded-2xl bg-stone-100 px-4 py-3 text-sm text-stone-700">
-                  저장될 운영시간: {openingHours}
-                </p>
-              ) : null}
             </div>
 
             <label className="space-y-2">
@@ -1145,6 +1137,53 @@ export function SubmissionHub({
                 ) : null}
 
                 <div ref={postcodeLayerRef} className="h-full min-h-[360px]" />
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {result?.kind === "success" ? (
+        <div className="fixed inset-0 z-[810] bg-stone-950/55 px-4 py-6 backdrop-blur-sm">
+          <div className="mx-auto flex h-full max-w-md items-center justify-center">
+            <div className="w-full rounded-[28px] bg-white p-6 shadow-[0_24px_80px_rgba(20,20,20,0.22)]">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-stone-900">
+                    가게 등록이 완료되었습니다
+                  </p>
+                  <p className="mt-2 text-sm leading-6 text-stone-600">
+                    {result.message}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setResult(null)}
+                  className="rounded-full border border-stone-300 p-2 text-stone-700"
+                  aria-label="등록 완료 팝업 닫기"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                <button
+                  type="button"
+                  onClick={() => setResult(null)}
+                  className="rounded-full border border-stone-300 bg-white px-5 py-3 text-sm font-semibold text-stone-900"
+                >
+                  확인
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setResult(null);
+                    router.push("/");
+                  }}
+                  className="rounded-full bg-stone-950 px-5 py-3 text-sm font-semibold text-white"
+                >
+                  지도로 이동
+                </button>
               </div>
             </div>
           </div>
